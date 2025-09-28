@@ -1,15 +1,26 @@
-# Book Library — Full‑stack app (React + Express + Prisma)
+# Book Library
 
-This project is a small full‑stack Book Library application:
-- Frontend: React + Vite + TailwindCSS. CRUD for books and authors is performed in modals using Formik + Yup with validation and inline author creation in the book form.
-- Backend: Node.js + TypeScript + Express + Prisma (PostgreSQL). Exposes list, get‑by‑id, and full CRUD endpoints for authors and books.
-- Dev infra: Docker Compose for Postgres, Prisma schema/migrations, Vite dev server with API proxy.
+A small, type‑safe full‑stack app to manage books and authors.
 
-## Getting started
+- Frontend: React 19 + Vite 5 + Tailwind CSS 4
+- State/data: TanStack Query 5, tables via @tanstack/react-table v8
+- Forms: Formik + Yup in accessible react-modal dialogs
+- Backend: Express 4 + Prisma 6 (PostgreSQL) on Node.js 20+
+- Tests: Vitest 3 + @testing-library/react (jsdom)
+
+## Features
+
+- Books and Authors CRUD with optimistic UI via TanStack Query
+- Search a single item by exact title/id (books) or name/id (authors) without extra network requests
+- Reusable UI primitives: Button, Modal, ConfirmModal, DataTable
+- Consistent API responses using snake_case for timestamps/foreign keys
+- Fully typed backend handlers, friendly Prisma error mapping
+
+## Quick start
 
 Prerequisites:
 - Node.js 20+
-- Docker (for the Postgres database)
+- Docker (for PostgreSQL)
 
 ### 1) Start the database
 
@@ -44,86 +55,126 @@ npm run prisma:migrate
 ```
 npm run dev:server
 ```
-- The API starts on http://localhost:5174
-- Health: GET /api/health
+- API base URL: http://localhost:5174
+- Health check: GET /api/health
 
 ### 5) Start the frontend (Vite)
 
 ```
 npm run dev
 ```
-- Vite runs on http://localhost:5173
-- All "/api" calls are proxied to http://localhost:5174 (see vite.config.ts)
+- Web app: http://localhost:5173
+- The Vite dev server proxies /api to http://localhost:5174 (see vite.config.ts)
 
-## Environment
+## Scripts
 
-Backend uses Prisma. Configure the database via .env at project root:
+- dev — start the frontend dev server
+- dev:server — start the Express API with tsx
+- build — type‑check and build the frontend
+- preview — preview the built frontend
+- lint — run ESLint
+- prisma:generate — generate Prisma client
+- prisma:migrate — apply migrations (dev)
+- prisma:studio — open Prisma Studio
+- test — run all tests once
+- test:watch — run tests in watch mode
+- test:coverage — run tests with coverage
+
+## Configuration
+
+Create a .env at the project root if you need to override defaults:
+
 - DATABASE_URL=postgresql://booklib:booklib@localhost:5432/booklib
-- PORT=5174 (optional)
+- PORT=5174 (backend, optional)
 
-The docker‑compose service uses these vars (with defaults):
-- POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+The docker-compose service reads POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB (default to booklib).
 
 ## API overview
 
 Base URL: http://localhost:5174
 
-Common response fields use snake_case for timestamps/foreign keys (e.g., created_at, author_id).
+Errors: `{ error: string }` with HTTP 400 (validation), 404 (not found), 500 (unexpected). Timestamps and foreign keys use snake_case.
 
 Authors:
 - GET /api/authors — list authors
-- GET /api/authors/:id — find one
-- POST /api/authors — create { name }
-- PUT /api/authors/:id — update { name? }
+- GET /api/authors/:id — fetch a single author
+- POST /api/authors — create `{ name }`
+- PUT /api/authors/:id — update `{ name? }`
 - DELETE /api/authors/:id — delete
 
 Books:
-- GET /api/books — list books (includes author name)
-- GET /api/books/:id — find one
-- POST /api/books — create { title, author_id? } (author_id can be null)
-- PUT /api/books/:id — update { title?, author_id? }
+- GET /api/books — list books (includes `author` name)
+- GET /api/books/:id — fetch a single book
+- POST /api/books — create `{ title, author_id? }` (author_id can be null)
+- PUT /api/books/:id — update `{ title?, author_id? }`
 - DELETE /api/books/:id — delete
 
-Errors are returned as { error: string }. 400 for validation issues, 404 when not found, 500 for unexpected errors.
+## Frontend
 
-## Frontend overview
+- Routes
+  - `/` — Books page (list, search, add/edit/delete in modals)
+  - `/authors` — Authors page (list, search, add/edit/delete in modals)
+- Data layer: TanStack Query for fetching/caching/mutations
+- Tables: shared `DataTable` powered by @tanstack/react-table v8
+- Forms: Formik + Yup inside `react-modal` dialogs
+- UI: Tailwind CSS v4 utilities;
 
-- Routes: 
-  - "/" — Books page (list, search, add/edit/delete in modals)
-  - "/authors" — Authors page (list, search, add/edit/delete in modals)
-- State/data fetching: TanStack Query (React Query)
-- Forms/validation: Formik + Yup in react-modal dialogs
-- Search: type at least three letters; matches by exact > startsWith > includes (local, no extra requests)
-- Styling: TailwindCSS with a bright, library‑suited theme
+## Backend
 
-## Project structure (high level)
+- Express + Prisma (PostgreSQL) listening on port 5174 by default
+- Prisma models for `Author` and `Book` (see prisma/schema.prisma)
+- Consistent response mapping to `snake_case` (`created_at`, `author_id`)
+- Typed request/response handlers and safe Prisma error handling (P2003 invalid FK, P2025 not found)
+
+## Project structure
+
 - prisma/
-  - schema.prisma — models for Author and Book
+  - schema.prisma — Prisma schema and models
 - server/
-  - index.ts — Express app registering routes
+  - index.ts — Express app and routes
   - prisma.ts — Prisma client singleton
-  - authors/ — CRUD handlers (findAuthors, findAuthor, createAuthor, updateAuthor, deleteAuthor)
-  - books/ — CRUD handlers (findBooks, findBook, createBook, updateBook, deleteBook)
+  - authors/ — find/create/update/delete handlers
+  - books/ — find/create/update/delete handlers
 - src/
   - App.tsx, pages/ (Home.tsx, Authors.tsx)
-  - hooks/ (useBooks, useBook, useAuthors, useAuthor)
-  - components/ (Header, Footer, SectionCard, Modal, ConfirmModal, BookFormModal, AuthorFormModal, BooksSection, AuthorsSection)
-  - lib/queryClient.ts — fetch helpers and QueryClient
+  - components/
+    - shared/ (Header, Button, Modal, ConfirmModal, DataTable, SectionCard)
+    - books/ (BooksSection, BookFormModal)
+    - authors/ (AuthorsSection, AuthorFormModal)
+  - hooks/ (useBooks, useBook, useAuthors, useAuthor, useTableState)
+  - lib/queryClient.ts — QueryClient instance
 - shared/
-  - types.ts — shared TypeScript interfaces
+  - types.ts — shared interfaces
 - docker-compose.yml — Postgres service
-- vite.config.ts — dev server with /api proxy
+- vite.config.ts — dev server with /api proxy and vitest config
 
-## NPM scripts
-- dev — start Vite
-- dev:server — start Express API with tsx
-- build — type‑check and build frontend
-- lint — run ESLint
-- prisma:generate — generate Prisma client
-- prisma:migrate — apply migrations
-- prisma:studio — open Prisma Studio
+## Testing
+
+- Run all tests: `npm run test`
+- Watch mode: `npm run test:watch`
+- Coverage: `npm run test:coverage`
+
+Setup:
+- Vitest with jsdom (vite.config.ts)
+- Setup file `vitest.setup.ts` enables @testing-library/jest-dom
+- Frontend tests under `src/**/__tests__` and hooks
+- Backend handler tests under `server/__tests__` (Prisma mocked)
 
 ## Troubleshooting
-- 500 errors on API: ensure Postgres is running, Prisma client is generated, and migrations are applied (`npm run prisma:generate` and `npm run prisma:migrate`).
-- Use GET /api/health to verify DB connectivity (db=true means OK).
-- If the frontend can’t reach the API, confirm Vite proxy in vite.config.ts and that the API runs on port 5174.
+
+- API 500 errors: make sure Postgres is up, a Prisma client is generated, and migrations are applied (`npm run prisma:generate` then `npm run prisma:migrate`).
+- Check health: GET /api/health should return `{ status: "ok", db: true }`.
+- Frontend cannot reach API: ensure the API runs on 5174 and the Vite proxy is active.
+- TypeScript errors: run `npm run build` to type‑check the frontend.
+
+## FAQ
+
+- Can I run the frontend build without the API?
+  - Yes. `npm run build && npm run preview` serves the static frontend. API calls will still target `/api`; set up a proxy or run the API for full functionality.
+- How do I inspect the database?
+  - `npm run prisma:studio` opens Prisma Studio in the browser.
+
+## License
+
+MIT
+
