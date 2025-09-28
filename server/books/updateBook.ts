@@ -1,17 +1,26 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 
-export async function updateBook(req: Request, res: Response) {
+type UpdateBookParams = { id: string };
+interface UpdateBookBody {
+  title?: unknown;
+  author_id?: unknown;
+}
+
+export async function updateBook(
+  req: Request<UpdateBookParams, unknown, UpdateBookBody>,
+  res: Response,
+) {
   try {
-    const id = Number((req as any).params?.id);
+    const id = Number(req.params?.id);
     if (!id || Number.isNaN(id)) {
       res.status(400).json({ error: 'invalid id' });
       return;
     }
 
-    const { title, author_id } = (req as any).body ?? {};
+    const { title, author_id } = req.body ?? {};
 
-    const data: any = {};
+    const data: { title?: string; authorId?: number | null } = {};
 
     if (title !== undefined) {
       if (typeof title !== 'string' || title.trim() === '') {
@@ -49,16 +58,24 @@ export async function updateBook(req: Request, res: Response) {
       author: b.author?.name ?? null,
       created_at: b.createdAt,
     });
-  } catch (e: any) {
-    if (e?.code === 'P2003') {
-      res
-        .status(400)
-        .json({ error: 'author_id does not reference an existing author' });
-      return;
-    }
-    if (e?.code === 'P2025') {
-      res.status(404).json({ error: 'Book not found' });
-      return;
+  } catch (e: unknown) {
+    if (
+      e &&
+      typeof e === 'object' &&
+      'code' in e &&
+      typeof (e as { code?: unknown }).code === 'string'
+    ) {
+      const code = (e as { code: string }).code;
+      if (code === 'P2003') {
+        res
+          .status(400)
+          .json({ error: 'author_id does not reference an existing author' });
+        return;
+      }
+      if (code === 'P2025') {
+        res.status(404).json({ error: 'Book not found' });
+        return;
+      }
     }
     res.status(500).json({ error: (e as Error).message });
   }

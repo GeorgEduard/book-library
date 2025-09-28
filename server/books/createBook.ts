@@ -1,9 +1,17 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 
-export async function createBook(req: Request, res: Response) {
+interface CreateBookBody {
+  title?: unknown;
+  author_id?: unknown;
+}
+
+export async function createBook(
+  req: Request<unknown, unknown, CreateBookBody>,
+  res: Response,
+) {
   try {
-    const { title, author_id } = (req as any).body ?? {};
+    const { title, author_id } = req.body ?? {};
 
     if (!title || typeof title !== 'string' || title.trim() === '') {
       res.status(400).json({ error: 'title is required' });
@@ -32,8 +40,14 @@ export async function createBook(req: Request, res: Response) {
       author: b.author?.name ?? null,
       created_at: b.createdAt,
     });
-  } catch (e: any) {
-    if (e?.code === 'P2003') {
+  } catch (e: unknown) {
+    if (
+      e &&
+      typeof e === 'object' &&
+      'code' in e &&
+      typeof (e as { code?: unknown }).code === 'string' &&
+      (e as { code: string }).code === 'P2003'
+    ) {
       res
         .status(400)
         .json({ error: 'author_id does not reference an existing author' });

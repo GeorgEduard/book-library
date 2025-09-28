@@ -1,17 +1,25 @@
 import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 
-export async function updateAuthor(req: Request, res: Response) {
+type UpdateAuthorParams = { id: string };
+interface UpdateAuthorBody {
+  name?: unknown;
+}
+
+export async function updateAuthor(
+  req: Request<UpdateAuthorParams, unknown, UpdateAuthorBody>,
+  res: Response,
+) {
   try {
-    const id = Number((req as any).params?.id);
+    const id = Number(req.params?.id);
     if (!id || Number.isNaN(id)) {
       res.status(400).json({ error: 'invalid id' });
       return;
     }
 
-    const { name } = (req as any).body ?? {};
+    const { name } = req.body ?? {};
 
-    const data: any = {};
+    const data: { name?: string } = {};
 
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim() === '') {
@@ -29,8 +37,14 @@ export async function updateAuthor(req: Request, res: Response) {
     const a = await prisma.author.update({ where: { id }, data });
 
     res.json({ id: a.id, name: a.name, created_at: a.createdAt });
-  } catch (e: any) {
-    if (e?.code === 'P2025') {
+  } catch (e: unknown) {
+    if (
+      e &&
+      typeof e === 'object' &&
+      'code' in e &&
+      typeof (e as { code?: unknown }).code === 'string' &&
+      (e as { code: string }).code === 'P2025'
+    ) {
       res.status(404).json({ error: 'Author not found' });
       return;
     }
