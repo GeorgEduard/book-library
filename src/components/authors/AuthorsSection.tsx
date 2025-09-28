@@ -1,7 +1,7 @@
 import SectionCard from '../shared/SectionCard';
 import type { Author } from '../../../shared/types';
 import { useState } from 'react';
-import { useAuthor } from '../../hooks/useAuthor';
+import { useAuthor } from '../../hooks/useAuthors';
 import AuthorFormModal from './AuthorFormModal';
 import ConfirmModal from '../shared/ConfirmModal';
 import DataTable, { type TableState } from '../shared/DataTable';

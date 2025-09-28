@@ -11,7 +11,7 @@ import {
   useUpdateBook,
   useDeleteBook,
 } from '../../hooks/useBooks';
-import { useBook } from '../../hooks/useBook';
+import { useBook } from '../../hooks/useBooks';
 import useTableState from '../../hooks/useTableState';
 
 interface BooksSectionProps {
