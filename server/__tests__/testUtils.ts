@@ -1,31 +1,48 @@
 import type { Request, Response } from 'express';
 
-export function mockReq<TParams = any, TBody = any>(
+// Create a mock Request with typed params and body.
+export function mockReq<
+  TParams extends Record<string, string> = Record<string, string>,
+  TBody = unknown,
+>(
   params?: Partial<TParams>,
   body?: Partial<TBody>,
-): Request {
+): Request<TParams, unknown, TBody> {
   return {
-    params: (params ?? {}) as any,
-    body: (body ?? {}) as any,
-  } as any as Request;
+    params: (params ?? {}) as TParams,
+    body: (body ?? {}) as TBody,
+  } as unknown as Request<TParams, unknown, TBody>;
 }
 
-export function mockRes() {
-  const res: Partial<Response> & { statusCode: number; body: any } = {
+// Minimal typed mock for Express Response used in tests.
+export interface MockResponse<ResBody = unknown> extends Response {
+  statusCode: number;
+  body: ResBody | undefined;
+}
+
+export function mockRes<ResBody = unknown>(): MockResponse<ResBody> {
+  const res: Partial<Response> & {
+    statusCode: number;
+    body: ResBody | undefined;
+  } = {
     statusCode: 200,
     body: undefined,
   };
+
   res.status = ((code: number) => {
     res.statusCode = code;
     return res as Response;
-  }) as any;
-  res.json = ((data: any) => {
+  }) as Response['status'];
+
+  res.json = ((data: ResBody) => {
     res.body = data;
     return res as Response;
-  }) as any;
+  }) as Response['json'];
+
   res.end = (() => {
     res.body = undefined;
     return res as Response;
-  }) as any;
-  return res as Response & { statusCode: number; body: any };
+  }) as Response['end'];
+
+  return res as unknown as MockResponse<ResBody>;
 }

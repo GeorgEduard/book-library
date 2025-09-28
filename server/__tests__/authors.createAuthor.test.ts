@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import type { PrismaClient } from '@prisma/client';
 import { mockReq, mockRes } from './testUtils';
 
@@ -28,7 +28,7 @@ describe('createAuthor', () => {
   });
 
   it('creates author and returns 201 with mapped fields', async () => {
-    (prisma.author.create as any).mockResolvedValue({
+    (prisma.author.create as unknown as Mock).mockResolvedValue({
       id: 1,
       name: 'Alice',
       createdAt: new Date('2020-01-01T00:00:00Z'),
